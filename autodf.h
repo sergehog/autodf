@@ -43,7 +43,7 @@ struct Const
     const float value;
 
     template<unsigned AMNT=MAXID+1>
-    [[nodiscard]] constexpr float eval(const std::array<float, AMNT>&) const
+    [[nodiscard]] constexpr float eval(const std::array<float, AMNT>& = {}) const
     {
         return value;
     }
@@ -54,29 +54,86 @@ struct Const
         return std::array<float, AMNT>{};
     }
 
-    //  template<unsigned AMNT=MAXID+1>
-    //  [[nodiscard]] constexpr std::array<float, AMNT> gradient(const std::array<float, AMNT>&)  const
-    //  {
-    //    return std::array<float, AMNT>{};
-    //  }
+    //! Sum where Const is left argument : Res = Const + Other
+    template<typename T2> constexpr Sum<const Const,const T2> operator+(T2 other) const
+    {
+        return Sum<const Const,const T2> {*this, other};
+    }
 
-    template<typename T2> constexpr Sum<const Const,const T2> operator+(T2 other) const;
-    template<typename T2> constexpr Mul<const Const,const T2> operator*(T2 other) const;
+    //! Mul where Const is left argument : Res = Const * Other
+    template<typename T2> constexpr Mul<const Const,const T2> operator*(T2 other) const
+    {
+        return Mul<const Const,const T2> {*this, other};
+    }
+
+    // operations with other Const
+    constexpr Const operator+(const Const other) const
+    {
+        return Const{value + other.value};
+    }
+
+    constexpr Const operator-(const Const other) const
+    {
+        return Const{value - other.value};
+    }
+
+    constexpr Const operator*(const Const other) const
+    {
+        return Const{value * other.value};
+    }
+
+    constexpr Const operator/(const Const other) const
+    {
+        return Const{value / other.value};
+    }
+
+    // operations with scalar
+    constexpr Const operator+(const float other) const
+    {
+        return Const{value + other};
+    }
+
+    constexpr Const operator-(const float other) const
+    {
+        return Const{value - other};
+    }
+
+    constexpr Const operator*(const float other) const
+    {
+        return Const{value * other};
+    }
+
+    constexpr Const operator/(const float other) const
+    {
+        return Const{value / other};
+    }
+
 };
 
-template<typename T2> constexpr Sum<const Const,const T2> Const::operator+(T2 other) const
+constexpr Const operator+ (const float a, const Const& b)
 {
-    return Sum<const Const,const T2> {*this, other};
+    return Const{a+b.value};
 }
 
-template<typename T2> constexpr Mul<const Const,const T2> Const::operator*(T2 other) const
+constexpr Const operator- (const float a, const Const& b)
 {
-    return Mul<const Const,const T2> {*this, other};
+    return Const{a-b.value};
 }
+
+constexpr Const operator* (const float a, const Const& b)
+{
+    return Const{a*b.value};
+}
+
+constexpr Const operator/ (const float a, const Const& b)
+{
+    return Const{a/b.value};
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//! Represents a variable
+//! Represents a variable, template parameter ID defines variable uniqueness
 template<unsigned ID=0>
 struct Variable
 {
