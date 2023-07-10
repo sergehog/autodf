@@ -8,7 +8,7 @@ CURR_DIR=$(pwd)
 
 mkdir -p /tmp/autodf_tests
 cd /tmp/autodf_tests
-cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SAMPLES=OFF $CURR_DIR
+cmake -DCMAKE_BUILD_TYPE=Release $CURR_DIR
 make -j4
 ctest
 

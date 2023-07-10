@@ -25,27 +25,27 @@ template <unsigned ID>
 constexpr int test_Const(const Variable<ID> x)
 {
     constexpr auto five = Const{5.0};
-    static_assert(5.F == five.eval());
-    static_assert(5.F == five.eval({}));
-    static_assert(5.F == five.eval<1>({0.0}));
-    static_assert(5.F == five.eval<1>({1000.0}));
-    static_assert(0.F == five.gradient({1.F}).at(0));
-    static_assert(0.F == five.gradient<1>({1.F}).at(0));
+    static_assert(5.0 == five.eval());
+    static_assert(5.0 == five.eval({}));
+    static_assert(5.0 == five.eval<1>({0.0}));
+    static_assert(5.0 == five.eval<1>({1000.0}));
+    static_assert(0.0 == five.gradient<0>({1.F}));
+    static_assert(0.0 == five.gradient<1>({1.F}));
 
-    static_assert(10.F == (five + x).eval({5.F}));
-    // static_assert(1.F == (five-x).eval({4.F}));
-    static_assert(10.F == (five * x).eval({2.F}));
-    // static_assert(2.5F == (five/x).eval({2.F}));
+    static_assert(10.0 == (five + x).eval({5.0}));
+    static_assert(1.0 == (five - x).eval({4.0}));
+    static_assert(10.0 == (five * x).eval({2.0}));
+    // static_assert(2.5 == (five/x).eval({2.F}));
 
-    static_assert(10.F == (five + 5.F).eval());
-    static_assert(1.F == (five - 4.F).eval());
-    static_assert(10.F == (five * 2.F).eval());
-    static_assert(2.5F == (five / 2.F).eval());
+    static_assert(10.0 == (five + 5.0).eval<1>({5.F}));
+    static_assert(1.0 == (five - 4.0).eval<1>({}));
+    static_assert(10.0 == (five * 2.0).eval<1>({}));
+    static_assert(2.50 == (five / 2.0).eval<1>({}));
 
-    static_assert(11.F == (6.F + five).eval());
-    static_assert(6.F == (11.F - five).eval());
-    static_assert(15.F == (3.F * five).eval());
-    static_assert(3.F == (15.F / five).eval());
+    static_assert(11.0 == (6.0 + five).eval());
+    static_assert(6.0 == (11.0 - five).eval());
+    static_assert(15.0 == (3.0 * five).eval());
+    static_assert(3.0 == (15.0 / five).eval());
 
     return 0;
 }
@@ -56,13 +56,13 @@ constexpr Variable<1> test_Variable(const Variable<ID0> x)
 {
     constexpr Variable<1> y;
     static_assert(0 == Variable<0>::MAXID);
-    static_assert(1.F == x.eval({1.F}));
-    static_assert(1.F == x.gradient({0.F})[0]);
-    static_assert(1 == Variable<1>::MAXID);
-    static_assert(11111.F == y.eval({0, 11111.F}));
-    static_assert(1.F == y.gradient({111.F, 0.123F})[Variable<1>::MAXID]);
-    static_assert(0.F == y.gradient({0.123F, 123.F})[0]);
-    static_assert(0.F == y.gradient({0.123F, 123.F}).at(0));
+    static_assert(1.0 == x.eval({1.F}));
+    static_assert(1.0 == x.template gradient<0>({0.0}));
+    static_assert(1.0 == Variable<1>::MAXID);
+    static_assert(11111.0 == y.eval({0, 11111.0}));
+    static_assert(1.0 == y.template gradient<1>({111.0, 0.123}));
+    static_assert(0.0 == y.template gradient<0>({0.123, 123.0}));
+    static_assert(0.0 == y.template gradient<0>({0.123, 123.0}));
 
     return y;
 }
@@ -92,17 +92,17 @@ constexpr int test_Sum(const Variable<ID0> x, const Variable<ID1> y)
 template <unsigned ID0, unsigned ID1>
 constexpr int test_eval(const Variable<ID0> x, const Variable<ID1> y)
 {
-    static_assert((2.f + 5.F) == Sum{x, Const{5.F}}.eval({2.F}));
-    constexpr auto x_plus_5 = x + 5.F;
-    static_assert((2.f + 5.F) == x_plus_5.eval({2.F}));
-    constexpr auto x5 = x * 5.F;
-    static_assert((2.f * 5.F) == x5.eval({2.F}));
-    constexpr auto _5x = 5.F * x;
-    static_assert(x5.eval({2.F}) == _5x.eval({2.F}));
-    static_assert(2.F == (x + y).eval({1.F, 1.F}));
-    static_assert(2.F == (x * y + y * x).eval({1.F, 1.F}));
-    static_assert(2.F == (x * x + y * y).eval({1.F, 1.F}));
-    static_assert(8.F == (x * x + y * y).eval({2.F, 2.F}));
+    static_assert((2.0 + 5.0) == Sum{x, Const{5.0}}.eval({2.0}));
+    constexpr auto x_plus_5 = x + 5.0;
+    static_assert((2.0 + 5.0) == x_plus_5.eval({2.0}));
+    constexpr auto x5 = x * 5.0;
+    static_assert((2.0 * 5.0) == x5.eval({2.0}));
+    constexpr auto _5x = 5.0 * x;
+    static_assert(x5.eval({2.0}) == _5x.eval({2.0}));
+    static_assert(2.0 == (x + y).eval({1.0, 1.0}));
+    static_assert(2.0 == (x * y + y * x).eval({1.0, 1.0}));
+    static_assert(2.0 == (x * x + y * y).eval({1.0, 1.0}));
+    static_assert(8.0 == (x * x + y * y).eval({2.0, 2.0}));
     return 0;
 }
 
@@ -110,56 +110,53 @@ constexpr int test_eval(const Variable<ID0> x, const Variable<ID1> y)
 template <unsigned ID0, unsigned ID1>
 constexpr int test_gradient(const Variable<ID0> x, const Variable<ID1> y)
 {
-    constexpr auto g = Sum{x, y}.gradient({1.F, 1.F});
-    static_assert(1.0 == g[0]);
-    static_assert(1.0 == g[1]);
+    constexpr auto g0 = Sum{x, y}.template gradient<0>({1.0, 2.0});
+    constexpr auto g1 = Sum{x, y}.template gradient<1>({1.0, 2.0});
+    static_assert(1.0 == g0);
+    static_assert(1.0 == g1);
 
-    constexpr auto gMul = Mul{x, y}.gradient({1.F, 1.F});
-    static_assert(1.0 == gMul[0]);
-    static_assert(1.0 == gMul[1]);
+    constexpr auto gMul0 = Mul{x, y}.template gradient<0>({1.F, 1.F});
+    constexpr auto gMul1 = Mul{x, y}.template gradient<1>({1.F, 1.F});
+    static_assert(1.0 == gMul0);
+    static_assert(1.0 == gMul1);
 
-    constexpr auto f = (x + (-1.F)) * (x + 1.F) + (y + (-1.F)) * (y + 1.F);
-    constexpr auto fg10 = f.gradient({1.F, 0.F});
-    static_assert(fg10[0] == 2.0);
-    static_assert(fg10[1] == 0.0);
+    constexpr auto f = (x + (-1.0)) * (x + 1.0) + (y + (-1.0)) * (y + 1.0);
 
-    constexpr auto fg_10 = f.gradient({-1.F, 0.F});
-    static_assert(fg_10[0] == -2.0);
-    static_assert(fg_10[1] == 0.0);
+    static_assert(f.template gradient<0>({1.0, 0.0}) == 2.0);
+    static_assert(f.template gradient<1>({1.0, 0.0}) == 0.0);
 
-    constexpr auto fg01 = f.gradient({0.F, 1.F});
-    static_assert(fg01[0] == 0.0);
-    static_assert(fg01[1] == 2.0);
+    static_assert(f.template gradient<0>({-1.0, 0.0}) == -2.0);
+    static_assert(f.template gradient<1>({-1.0, 0.0}) == 0.0);
 
-    constexpr auto fg_01 = f.gradient({0.F, -1.F});
-    static_assert(fg_01[0] == 0.0);
-    static_assert(fg_01[1] == -2.0);
+    static_assert(f.template gradient<0>({0.0, 1.0}) == 0.0);
+    static_assert(f.template gradient<1>({0.0, 1.0}) == 2.0);
 
-    constexpr auto fg00 = f.gradient({0.F, 0.F});
-    static_assert(fg01[0] == 0.0);
-    static_assert(fg01[0] == 0.0);
+    static_assert(f.template gradient<0>({0.0, -1.0}) == 0.0);
+    static_assert(f.template gradient<1>({0.0, -1.0}) == -2.0);
+
+    static_assert(f.template gradient<0>({0.0, 0.0}) == 0.0);
+    static_assert(f.template gradient<1>({0.0, 0.0}) == 0.0);
     return 0;
 }
-
-
 
 int main()
 {
     // initialization of variable
     constexpr Variable<0> x;
 
-    // test Const structure
-    test_Const(x);  // test also passing variable as argument
+    // tests Const structure, also passing constexpr Variable as argument
+    test_Const(x);
 
-    constexpr auto y = test_Variable(x);  // test return variable
+    // tests and returns constexpr Variable
+    constexpr auto y = test_Variable(x);
 
-    // test Sum structure
+    // tests Sum structure
     test_Sum(x, y);
 
-    // test eval() function
+    // tests eval() function
     test_eval(x, y);
 
-    // test gradient() function
+    // tests gradient() function
     test_gradient(x, y);
 
     return 0;

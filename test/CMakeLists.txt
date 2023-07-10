@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_CXX_STANDARD 20)
 
-#add_executable(autodf_test autodf_test.cpp)
-#target_link_libraries(autodf_test gtest gtest_main pthread)
-#add_test(NAME autodf_test COMMAND autodf_test)
-
 add_executable(compiletime_autodf_test compiletime_autodf_test.cpp)
 add_test(NAME compiletime_autodf_test COMMAND compiletime_autodf_test)
 
