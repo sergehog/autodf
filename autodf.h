@@ -1,6 +1,6 @@
 /*
  * This file is part of the AutoDf distribution (https://github.com/sergehog/autodf)
- * Copyright (c) 2023 Sergey Smirnov / Seregium Oy.
+ * Copyright (c) 2023-2024 Sergey Smirnov / Seregium Oy.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
  * documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -20,6 +20,7 @@
 #define AUTODF_H
 
 #include <array>
+#include <cmath>
 
 namespace autodf
 {
@@ -39,8 +40,43 @@ struct Sub;
 template <unsigned ID>
 struct Variable;
 
+#define CONST_OPS(TypeName)                                                           \
+    constexpr Sum<const TypeName, const Const> operator+(const double value_in) const \
+    {                                                                                 \
+        return Sum<const TypeName, const Const>{*this, Const{value_in}};              \
+    }                                                                                 \
+    constexpr Sub<const TypeName, const Const> operator-(const double value_in) const \
+    {                                                                                 \
+        return Sub<const TypeName, const Const>{*this, Const{value_in}};              \
+    }                                                                                 \
+    constexpr Mul<const TypeName, const Const> operator*(const double value_in) const \
+    {                                                                                 \
+        return Mul<const TypeName, const Const>{*this, Const{value_in}};              \
+    }                                                                                 \
+    constexpr Mul<const TypeName, const Const> operator/(const double value_in) const \
+    {                                                                                 \
+        return Mul<const TypeName, const Const>{*this, Const{1.0 / value_in}};        \
+    }
+
+#define GENERIC_OPS(TypeName)                                         \
+    template <typename TX>                                            \
+    constexpr Sum<const TypeName, const TX> operator+(TX other) const \
+    {                                                                 \
+        return Sum<const TypeName, const TX>{*this, other};           \
+    }                                                                 \
+    template <typename TX>                                            \
+    constexpr Sub<const TypeName, const TX> operator-(TX other) const \
+    {                                                                 \
+        return Sub<const TypeName, const TX>{*this, other};           \
+    }                                                                 \
+    template <typename TX>                                            \
+    constexpr Mul<const TypeName, const TX> operator*(TX other) const \
+    {                                                                 \
+        return Mul<const TypeName, const TX>{*this, other};           \
+    }
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
-//! Represents Constant
+//! Constant
 struct Const
 {
     static constexpr unsigned MAXID = 0;
@@ -59,43 +95,19 @@ struct Const
         return 0.0;
     }
 
-    //! Sum where Const is left argument : Res = Const + Other
-    template <typename T2>
-    constexpr Sum<const Const, const T2> operator+(T2 other) const
-    {
-        return Sum<const Const, const T2>{*this, other};
-    }
-
-    template <typename T2>
-    constexpr Sub<const Const, const T2> operator-(T2 other) const
-    {
-        return Sub<const Const, const T2>{*this, other};
-    }
-
-    //! Mul where Const is left argument : Res = Const * Other
-    template <typename T2>
-    constexpr Mul<const Const, const T2> operator*(T2 other) const
-    {
-        return Mul<const Const, const T2>{*this, other};
-    }
-
     // operations with other Const
     constexpr Const operator+(const Const other) const { return Const{value + other.value}; }
-
     constexpr Const operator-(const Const other) const { return Const{value - other.value}; }
-
     constexpr Const operator*(const Const other) const { return Const{value * other.value}; }
-
     constexpr Const operator/(const Const other) const { return Const{value / other.value}; }
 
     // operations with scalar
     constexpr Const operator+(const double other) const { return Const{value + other}; }
-
     constexpr Const operator-(const double other) const { return Const{value - other}; }
-
     constexpr Const operator*(const double other) const { return Const{value * other}; }
-
     constexpr Const operator/(const double other) const { return Const{value / other}; }
+
+    GENERIC_OPS(Const)
 };
 
 constexpr Const operator+(const double a, const Const& b)
@@ -137,46 +149,29 @@ struct Variable
         return forID == ID ? 1.0 : 0.0;
     }
 
-    constexpr Sum<const Variable<ID>, const Const> operator+(const double value) const
-    {
-        return Sum<const Variable<ID>, const Const>{*this, Const{value}};
-    }
-
-    constexpr Sub<const Variable<ID>, const Const> operator-(const double value) const
-    {
-        return Sub<const Variable<ID>, const Const>{*this, Const{value}};
-    }
-
-    constexpr Mul<const Variable<ID>, const Const> operator*(const double value) const
-    {
-        return Mul<const Variable<ID>, const Const>{*this, Const{value}};
-    }
-
-    template <typename T2>
-    constexpr Sum<const Variable<ID>, const T2> operator+(T2 value) const
-    {
-        return Sum<const Variable<ID>, const T2>{*this, value};
-    }
-    template <typename T2>
-    constexpr Sub<const Variable<ID>, const T2> operator-(T2 value) const
-    {
-        return Sub<const Variable<ID>, const T2>{*this, value};
-    }
-
-    template <typename T2>
-    constexpr Mul<const Variable<ID>, const T2> operator*(T2 value) const
-    {
-        return Mul<const Variable<ID>, const T2>{*this, value};
-    }
-
-    constexpr Sub<const Const, const Variable<ID>> operator-() const
-    {
-        return Sub<const Const, const Variable<ID>>{Const{0}, this};
-    }
+    CONST_OPS(Variable<ID>)
+    GENERIC_OPS(Variable<ID>)
 };
+template <unsigned ID>
+constexpr Sum<const Const, const Variable<ID>> operator+(const double a, const Variable<ID> b)
+{
+    return Sum<const Const, const Variable<ID>>{Const{a}, b};
+}
+
+template <unsigned ID>
+constexpr Sub<const Const, const Variable<ID>> operator-(const double a, const Variable<ID> b)
+{
+    return Sub<const Const, const Variable<ID>>{Const{a}, b};
+}
+
+template <unsigned ID>
+constexpr Mul<const Const, const Variable<ID>> operator*(const double a, const Variable<ID> b)
+{
+    return Mul<const Const, const Variable<ID>>{Const{a}, b};
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//! Defines Multiplication
+//! Multiplication
 template <typename T1, typename T2>
 struct Mul
 {
@@ -198,47 +193,19 @@ struct Mul
                b.template gradient<forID, AMNT>(input) * a.template eval<AMNT>(input);
     }
 
-    constexpr Sum<const Mul<T1, T2>, const Const> operator+(double value) const
-    {
-        return Sum<const Mul<T1, T2>, const Const>{*this, Const{value}};
-    }
-
-    constexpr Sub<const Mul<T1, T2>, const Const> operator-(double value) const
-    {
-        return Sub<const Mul<T1, T2>, const Const>{*this, Const{value}};
-    }
-
-    constexpr Mul<const Mul<T1, T2>, const Const> operator*(double value) const
-    {
-        return Mul<const Mul<T1, T2>, const Const>{*this, Const{value}};
-    }
-
-    template <typename T3>
-    constexpr Sum<const Mul<T1, T2>, const T3> operator+(T3 value) const
-    {
-        return Sum<const Mul<T1, T2>, const T3>{*this, value};
-    }
-
-    template <typename T3>
-    constexpr Sub<const Mul<T1, T2>, const T3> operator-(T3 value) const
-    {
-        return Sub<const Mul<T1, T2>, const T3>{*this, value};
-    }
-
-    template <typename T3>
-    constexpr Mul<const Mul<T1, T2>, const T3> operator*(T3 value) const
-    {
-        return Mul<const Mul<T1, T2>, const T3>{*this, value};
-    }
-
-    constexpr Sub<const Const, const Mul<T1, T2>> operator-() const
-    {
-        return Sub<const Const, const Mul<T1, T2>>{Const{0}, *this};
-    }
+    using TypeName = Mul<T1, T2>;
+    CONST_OPS(TypeName)
+    GENERIC_OPS(TypeName)
 };
+//! Left operand with normal const
+template <typename T2>
+constexpr Mul<const Const, const T2> operator*(const double a, T2 b)
+{
+    return Mul<const Const, const T2>{Const{a}, b};
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//! Defines Summation
+//! Summation
 template <typename T1, typename T2>
 struct Sum
 {
@@ -261,47 +228,20 @@ struct Sum
         return a.template gradient<forID, AMNT>(input) + b.template gradient<forID, AMNT>(input);
     }
 
-    constexpr Sum<const Sum<T1, T2>, const Const> operator+(double value) const
-    {
-        return Sum<const Sum<T1, T2>, const Const>{*this, Const{value}};
-    }
-
-    constexpr Sub<const Sum<T1, T2>, const Const> operator-(double value) const
-    {
-        return Sub<const Sum<T1, T2>, const Const>{*this, Const{value}};
-    }
-
-    constexpr Mul<const Sum<T1, T2>, const Const> operator*(double value) const
-    {
-        return Mul<const Sum<T1, T2>, const Const>{*this, Const{value}};
-    }
-
-    template <typename T3>
-    constexpr Sum<const Sum<T1, T2>, const T3> operator+(T3 value) const
-    {
-        return Sum<const Sum<T1, T2>, const T3>{*this, value};
-    }
-
-    template <typename T3>
-    constexpr Sub<const Sum<T1, T2>, const T3> operator-(T3 value) const
-    {
-        return Sub<const Sum<T1, T2>, const T3>{*this, value};
-    }
-
-    template <typename T3>
-    constexpr Mul<const Sum<T1, T2>, const T3> operator*(T3 value) const
-    {
-        return Mul<const Sum<T1, T2>, const T3>{*this, value};
-    }
-
-    constexpr Sub<const Const, const Sum<T1, T2>> operator-() const
-    {
-        return Sub<const Const, const Sum<T1, T2>>{Const{0}, *this};
-    }
+    using TypeName = Sum<T1, T2>;
+    CONST_OPS(TypeName)
+    GENERIC_OPS(TypeName)
 };
 
+//! Left operand with normal const
+template <typename T2>
+constexpr Sum<const Const, const T2> operator+(const double a, const T2 b)
+{
+    return Sum<const Const, const T2>{Const{a}, b};
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//! Defines Subtraction
+//! Subtraction
 template <typename T1, typename T2>
 struct Sub
 {
@@ -324,82 +264,123 @@ struct Sub
         return a.template gradient<forID, AMNT>(input) - b.template gradient<forID, AMNT>(input);
     }
 
-    constexpr Sum<const Sub<T1, T2>, const Const> operator+(double value) const
-    {
-        return Sum<const Sub<T1, T2>, const Const>{*this, Const{value}};
-    }
-
-    constexpr Sub<const Sub<T1, T2>, const Const> operator-(double value) const
-    {
-        return Sub<const Sub<T1, T2>, const Const>{*this, Const{value}};
-    }
-
-    constexpr Mul<const Sub<T1, T2>, const Const> operator*(double value) const
-    {
-        return Mul<const Sub<T1, T2>, const Const>{*this, Const{value}};
-    }
-
-    template <typename T3>
-    constexpr Sum<const Sub<T1, T2>, const T3> operator+(T3 value) const
-    {
-        return Sum<const Sub<T1, T2>, const T3>{*this, value};
-    }
-
-    template <typename T3>
-    constexpr Sub<const Sub<T1, T2>, const T3> operator-(T3 value) const
-    {
-        return Sub<const Sub<T1, T2>, const T3>{*this, value};
-    }
-
-    template <typename T3>
-    constexpr Mul<const Sub<T1, T2>, const T3> operator*(T3 value) const
-    {
-        return Mul<const Sub<T1, T2>, const T3>{*this, value};
-    }
-
-    constexpr Sub<const Const, const Sub<T1, T2>> operator-() const
-    {
-        return Sub<const Const, const Sub<T1, T2>>{Const{0}, *this};
-    }
+    using TypeName = Sub<T1, T2>;
+    CONST_OPS(TypeName)
+    GENERIC_OPS(TypeName)
 };
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//! Generic operators
-template <unsigned ID>
-constexpr Sum<const Const, const Variable<ID>> operator+(const double a, const Variable<ID> b)
+//! Left operand with normal const
+template <typename T1>
+constexpr Sub<const Const, const T1> operator-(const double a, const T1 b)
 {
-    return Sum<const Const, const Variable<ID>>{Const{a}, b};
+    return Sub<const Const, const T1>{Const{a}, b};
 }
 
-template <unsigned ID>
-constexpr Sub<const Const, const Variable<ID>> operator-(const double a, const Variable<ID> b)
+//! unary minus
+template <typename T1>
+constexpr Sub<const Const, const T1> operator-(const T1 a)
 {
-    return Sub<const Const, const Variable<ID>>{Const{a}, b};
+    return Sub<const Const, const T1>{Const{0.0}, a};
 }
 
-template <unsigned ID>
-constexpr Mul<const Const, const Variable<ID>> operator*(const double a, const Variable<ID> b)
+///////////////////////////////////////////////////////////////////////////////////////////////
+//! Sin() function
+template <typename T1>
+struct Sin
 {
-    return Mul<const Const, const Variable<ID>>{Const{a}, b};
+    static constexpr unsigned MAXID = T1::MAXID;
+
+    explicit constexpr Sin(const T1 v) : value(v) {}
+
+    const T1 value;
+
+    template <unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& values = {}) const
+    {
+        return std::sin(value.template eval<AMNT>(values));
+    }
+
+    template <unsigned forID, unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& values) const
+    {
+        return value.template gradient<forID, AMNT>(values) * std::cos(value.template eval<AMNT>(values));
+    }
+
+    using TypeName = Sin<T1>;
+    CONST_OPS(TypeName)
+    GENERIC_OPS(TypeName)
+};
+template <typename T1>
+constexpr Sin<const T1> sin(const T1 a)
+{
+    return Sin<const T1>{a};
 }
 
-template <typename T2>
-constexpr Sum<const Const, const T2> operator+(const double a, const T2 b)
+///////////////////////////////////////////////////////////////////////////////////////////////
+//! Cos() function
+template <typename T1>
+struct Cos
 {
-    return Sum<const Const, const T2>{Const{a}, b};
+    static constexpr unsigned MAXID = T1::MAXID;
+
+    explicit constexpr Cos(const T1 v) : value(v) {}
+
+    const T1 value;
+
+    template <unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& values = {}) const
+    {
+        return std::cos(value.template eval<AMNT>(values));
+    }
+
+    template <unsigned forID, unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& values) const
+    {
+        return -value.template gradient<forID, AMNT>(values) * std::sin(value.template eval<AMNT>(values));
+    }
+
+    using TypeName = Cos<T1>;
+    CONST_OPS(TypeName)
+    GENERIC_OPS(TypeName)
+};
+template <typename T1>
+constexpr Cos<const T1> cos(const T1 a)
+{
+    return Cos<const T1>{a};
 }
 
-template <typename T2>
-constexpr Sub<const Const, const T2> operator-(const double a, const T2 b)
+///////////////////////////////////////////////////////////////////////////////////////////////
+//! Sqrt() function
+template <typename T1>
+struct Sqrt
 {
-    return Sub<const Const, const T2>{Const{a}, b};
+    static constexpr unsigned MAXID = T1::MAXID;
+
+    explicit constexpr Sqrt(const T1 v) : value(v) {}
+
+    const T1 value;
+
+    template <unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& values = {}) const
+    {
+        return std::sqrt(value.eval<AMNT>(values));
+    }
+
+    template <unsigned forID, unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& values) const
+    {
+        return (0.5 / std::sqrt(value.template eval<AMNT>(values))) * value.template gradient<forID, AMNT>(values);
+    }
+
+    using TypeName = Sqrt<T1>;
+    CONST_OPS(TypeName)
+    GENERIC_OPS(TypeName)
+};
+template <typename T1>
+constexpr Sqrt<const T1> sqrt(const T1 a)
+{
+    return Sqrt<const T1>{a};
 }
 
-template <typename T2>
-constexpr Mul<const Const, const T2> operator*(const double a, T2 b)
-{
-    return Mul<const Const, const T2>{Const{a}, b};
-}
 }  // namespace autodf
 
 #endif  // AUTODF_H
