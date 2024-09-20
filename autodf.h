@@ -28,6 +28,10 @@ namespace autodf
 template <typename T1, typename T2>
 struct Mul;
 
+// Forward declaration for Div;
+template <typename T1, typename T2>
+struct Div;
+
 // Forward declaration for Sum;
 template <typename T1, typename T2>
 struct Sum;
@@ -58,21 +62,26 @@ struct Variable;
         return Mul<const TypeName, const Const>{*this, Const{1.0 / value_in}};        \
     }
 
-#define GENERIC_OPS(TypeName)                                         \
-    template <typename TX>                                            \
-    constexpr Sum<const TypeName, const TX> operator+(TX other) const \
-    {                                                                 \
-        return Sum<const TypeName, const TX>{*this, other};           \
-    }                                                                 \
-    template <typename TX>                                            \
-    constexpr Sub<const TypeName, const TX> operator-(TX other) const \
-    {                                                                 \
-        return Sub<const TypeName, const TX>{*this, other};           \
-    }                                                                 \
-    template <typename TX>                                            \
-    constexpr Mul<const TypeName, const TX> operator*(TX other) const \
-    {                                                                 \
-        return Mul<const TypeName, const TX>{*this, other};           \
+#define GENERIC_OPS(TypeName)                                               \
+    template <typename TX>                                                  \
+    constexpr Sum<const TypeName, const TX> operator+(const TX other) const \
+    {                                                                       \
+        return Sum<const TypeName, const TX>{*this, other};                 \
+    }                                                                       \
+    template <typename TX>                                                  \
+    constexpr Sub<const TypeName, const TX> operator-(const TX other) const \
+    {                                                                       \
+        return Sub<const TypeName, const TX>{*this, other};                 \
+    }                                                                       \
+    template <typename TX>                                                  \
+    constexpr Mul<const TypeName, const TX> operator*(const TX other) const \
+    {                                                                       \
+        return Mul<const TypeName, const TX>{*this, other};                 \
+    }                                                                       \
+    template <typename TX>                                                  \
+    constexpr Div<const TypeName, const TX> operator/(const TX other) const \
+    {                                                                       \
+        return Div<const TypeName, const TX>{*this, other};                 \
     }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -205,6 +214,41 @@ constexpr Mul<const Const, const T2> operator*(const double a, T2 b)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//! Division
+template <typename T1, typename T2>
+struct Div
+{
+    static constexpr unsigned MAXID = T1::MAXID > T2::MAXID ? T1::MAXID : T2::MAXID;
+    constexpr Div(const T1 ai, const T2 bi) : a(ai), b(bi) {}
+    const T1 a;
+    const T2 b;
+
+    template <unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& input) const
+    {
+        return a.template eval<AMNT>(input) / b.template eval<AMNT>(input);
+    }
+
+    template <unsigned forID, unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& input) const
+    {
+        return (a.template gradient<forID, AMNT>(input) * b.template eval<AMNT>(input) -
+                b.template gradient<forID, AMNT>(input) * a.template eval<AMNT>(input)) /
+               (b.template eval<AMNT>(input) * b.template eval<AMNT>(input));
+    }
+
+    using TypeName = Div<T1, T2>;
+    CONST_OPS(TypeName)
+    GENERIC_OPS(TypeName)
+};
+//! Left operand with normal const
+template <typename T2>
+constexpr Div<const Const, const T2> operator/(const double a, T2 b)
+{
+    return Div<const Const, const T2>{Const{a}, b};
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //! Summation
 template <typename T1, typename T2>
 struct Sum
@@ -294,15 +338,15 @@ struct Sin
     const T1 value;
 
     template <unsigned AMNT = MAXID + 1>
-    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& values = {}) const
+    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& input = {}) const
     {
-        return std::sin(value.template eval<AMNT>(values));
+        return std::sin(value.template eval<AMNT>(input));
     }
 
     template <unsigned forID, unsigned AMNT = MAXID + 1>
-    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& values) const
+    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& input) const
     {
-        return value.template gradient<forID, AMNT>(values) * std::cos(value.template eval<AMNT>(values));
+        return value.template gradient<forID, AMNT>(input) * std::cos(value.template eval<AMNT>(input));
     }
 
     using TypeName = Sin<T1>;
@@ -327,15 +371,15 @@ struct Cos
     const T1 value;
 
     template <unsigned AMNT = MAXID + 1>
-    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& values = {}) const
+    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& input = {}) const
     {
-        return std::cos(value.template eval<AMNT>(values));
+        return std::cos(value.template eval<AMNT>(input));
     }
 
     template <unsigned forID, unsigned AMNT = MAXID + 1>
-    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& values) const
+    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& input) const
     {
-        return -value.template gradient<forID, AMNT>(values) * std::sin(value.template eval<AMNT>(values));
+        return -value.template gradient<forID, AMNT>(input) * std::sin(value.template eval<AMNT>(input));
     }
 
     using TypeName = Cos<T1>;
@@ -360,15 +404,15 @@ struct Sqrt
     const T1 value;
 
     template <unsigned AMNT = MAXID + 1>
-    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& values = {}) const
+    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& input = {}) const
     {
-        return std::sqrt(value.eval<AMNT>(values));
+        return std::sqrt(value.template eval<AMNT>(input));
     }
 
     template <unsigned forID, unsigned AMNT = MAXID + 1>
-    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& values) const
+    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& input) const
     {
-        return (0.5 / std::sqrt(value.template eval<AMNT>(values))) * value.template gradient<forID, AMNT>(values);
+        return (0.5 / std::sqrt(value.template eval<AMNT>(input))) * value.template gradient<forID, AMNT>(input);
     }
 
     using TypeName = Sqrt<T1>;
@@ -379,6 +423,75 @@ template <typename T1>
 constexpr Sqrt<const T1> sqrt(const T1 a)
 {
     return Sqrt<const T1>{a};
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+//! IfPositive(COND, A, B) function
+template <typename T1, typename T2, typename T3>
+struct IfPositive
+{
+    static constexpr unsigned MAXID = T1::MAXID > T2::MAXID ? ((T1::MAXID > T3::MAXID) ? T1::MAXID : T3::MAXID)
+                                                            : ((T2::MAXID > T3::MAXID) ? T2::MAXID : T3::MAXID);
+
+    const T1 condition;
+    const T2 valueIfTrue;
+    const T3 valueIfFalse;
+
+    explicit constexpr IfPositive(const T1 eq, const T2 ifTrue, const T3 ifFalse)
+        : condition(eq), valueIfTrue(ifTrue), valueIfFalse(ifFalse)
+    {
+    }
+
+    template <unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& input = {}) const
+    {
+        if (condition.template eval<AMNT>(input) > 0.0)
+        {
+            return valueIfTrue.template eval<AMNT>(input);
+        }
+        else
+        {
+            return valueIfFalse.template eval<AMNT>(input);
+        }
+    }
+
+    template <unsigned forID, unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& input) const
+    {
+        if (condition.template eval<AMNT>(input) > 0.0)
+        {
+            return valueIfTrue.template gradient<forID, AMNT>(input);
+        }
+        else
+        {
+            return valueIfFalse.template gradient<forID, AMNT>(input);
+        }
+    }
+    using TypeName = IfPositive<T1, T2, T3>;
+    CONST_OPS(TypeName)
+    GENERIC_OPS(TypeName)
+};
+template <typename T1, typename T2, typename T3>
+constexpr IfPositive<const T1, const T2, const T3> ifPositive(const T1 condition, const T2 ifTrue, const T3 ifFalse)
+{
+    return IfPositive<const T1, const T2, const T3>{condition, ifTrue, ifFalse};
+}
+
+template <typename T1, typename T2>
+constexpr IfPositive<const T1, const T2, Const> ifPositive(const T1 condition, const T2 ifTrue, const double ifFalse)
+{
+    return IfPositive<const T1, const T2, Const>{condition, ifTrue, Const{ifFalse}};
+}
+
+template <typename T1, typename T3>
+constexpr IfPositive<const T1, Const, const T3> ifPositive(const T1 condition, const double ifTrue, const T3 ifFalse)
+{
+    return IfPositive<const T1, Const, const T3>{condition, Const{ifTrue}, ifFalse};
+}
+
+constexpr double ifPositive(const double condition, const double ifTrue, const double ifFalse)
+{
+    return (condition > 0.0) ? ifTrue : ifFalse;
 }
 
 }  // namespace autodf
