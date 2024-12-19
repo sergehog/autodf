@@ -360,6 +360,41 @@ constexpr Sin<const T1> sin(const T1 a)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
+//! Asin() function
+template <typename T1>
+struct Asin {
+    static constexpr unsigned MAXID = T1::MAXID;
+
+    explicit constexpr Asin(const T1 v)
+        : value(v)
+    {}
+
+    const T1 value;
+
+    template <unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& input = {}) const
+    {
+        return std::asin(value.template eval<AMNT>(input));
+    }
+
+    template <unsigned forID, unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& input) const
+    {
+        return value.template gradient<forID, AMNT>(input)
+             / std::sqrt(1. - std::pow(value.template eval<AMNT>(input), 2.));
+    }
+
+    using TypeName = Asin<T1>;
+    CONST_OPS(TypeName)
+    GENERIC_OPS(TypeName)
+};
+template <typename T1>
+constexpr Asin<const T1> asin(const T1 a)
+{
+    return Asin<const T1>{a};
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
 //! Cos() function
 template <typename T1>
 struct Cos
@@ -390,6 +425,51 @@ template <typename T1>
 constexpr Cos<const T1> cos(const T1 a)
 {
     return Cos<const T1>{a};
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//! Atan2
+template <typename T1, typename T2>
+struct Atan2 {
+    static constexpr unsigned MAXID = T1::MAXID > T2::MAXID ? T1::MAXID : T2::MAXID;
+
+    constexpr Atan2(T1 yi, T2 xi)
+        : a(yi)
+        , b(xi)
+    {}
+
+    const T1 a;
+    const T2 b;
+
+    template <unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double eval(const std::array<double, AMNT>& input) const
+    {
+        return std::atan2(a.template eval<AMNT>(input), b.template eval<AMNT>(input));
+    }
+
+    template <unsigned forID, unsigned AMNT = MAXID + 1>
+    [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& input) const
+    {
+        const auto db_dt = b.template gradient<forID, AMNT>(input);
+        const auto da_dt = a.template gradient<forID, AMNT>(input);
+        const auto b_t = b.template eval<AMNT>(input);
+        const auto a_t = a.template eval<AMNT>(input);
+        const auto norm2 = a_t * a_t + b_t * b_t;
+
+        const auto datan2_a_t = b_t / norm2;
+        const auto datan2_b_t = -a_t / norm2;
+        return datan2_a_t * da_dt + datan2_b_t * db_dt;
+    }
+
+    using TypeName = Atan2<T1, T2>;
+    CONST_OPS(TypeName)
+    GENERIC_OPS(TypeName)
+};
+
+template <typename T1, typename T2>
+constexpr Atan2<const T1, const T2> atan2(const T1 a, const T2 b)
+{
+    return Atan2<const T1, const T2>{a, b};
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
