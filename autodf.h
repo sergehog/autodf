@@ -362,12 +362,11 @@ constexpr Sin<const T1> sin(const T1 a)
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //! Asin() function
 template <typename T1>
-struct Asin {
+struct Asin
+{
     static constexpr unsigned MAXID = T1::MAXID;
 
-    explicit constexpr Asin(const T1 v)
-        : value(v)
-    {}
+    explicit constexpr Asin(const T1 v) : value(v) {}
 
     const T1 value;
 
@@ -380,8 +379,8 @@ struct Asin {
     template <unsigned forID, unsigned AMNT = MAXID + 1>
     [[nodiscard]] constexpr double gradient(const std::array<double, AMNT>& input) const
     {
-        return value.template gradient<forID, AMNT>(input)
-             / std::sqrt(1. - std::pow(value.template eval<AMNT>(input), 2.));
+        return value.template gradient<forID, AMNT>(input) /
+               std::sqrt(1. - std::pow(value.template eval<AMNT>(input), 2.));
     }
 
     using TypeName = Asin<T1>;
@@ -430,13 +429,11 @@ constexpr Cos<const T1> cos(const T1 a)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //! Atan2
 template <typename T1, typename T2>
-struct Atan2 {
+struct Atan2
+{
     static constexpr unsigned MAXID = T1::MAXID > T2::MAXID ? T1::MAXID : T2::MAXID;
 
-    constexpr Atan2(T1 yi, T2 xi)
-        : a(yi)
-        , b(xi)
-    {}
+    constexpr Atan2(T1 yi, T2 xi) : a(yi), b(xi) {}
 
     const T1 a;
     const T2 b;
